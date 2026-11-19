@@ -20,11 +20,11 @@ public class PCT_DefaultPvP : PictomancerRotation
 	// 敵をターゲットしていて25m以内にいるかどうかの判定
 	private bool HasValidTarget => CurrentTarget != null && CurrentTarget.DistanceToPlayer() <= 25f;
 
-	// イマジン・ポンを今すぐ撃つべきか（ターゲット条件をゆるくして確実に判定）
+	// イマジン・ポンを今すぐ撃つべきか
 	private bool CanUsePomNow =>
 		HasValidTarget &&
 		(FreeBurst || CurrentTarget?.GetHealthRatio() <= BurstThreshold) &&
-		PomMusePvP.CanUse(out _, usedUp: true, skipAoeCheck: true, skipTarget: true);
+		PomMusePvP.CanUse(out _, usedUp: true, skipAoeCheck: true);
 
 	#region oGCDs
 	// 0手目（魔法を撃つ前）に強制的にイマジン・ポンを発動させる
@@ -32,7 +32,7 @@ public class PCT_DefaultPvP : PictomancerRotation
 	{
 		if (CanUsePomNow)
 		{
-			if (PomMusePvP.CanUse(out action, usedUp: true, skipAoeCheck: true, skipTarget: true))
+			if (PomMusePvP.CanUse(out action, usedUp: true, skipAoeCheck: true))
 			{
 				return true;
 			}
@@ -55,7 +55,7 @@ public class PCT_DefaultPvP : PictomancerRotation
 	{
 		if (CanUsePomNow)
 		{
-			if (PomMusePvP.CanUse(out action, usedUp: true, skipAoeCheck: true, skipTarget: true))
+			if (PomMusePvP.CanUse(out action, usedUp: true, skipAoeCheck: true))
 			{
 				return true;
 			}
