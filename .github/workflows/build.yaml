@@ -27,3 +27,8 @@ jobs:
 
       - name: Build Plugin
         run: dotnet build --no-restore -c Release RotationSolver/RotationSolver.csproj
+      - name: Upload DLL Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: CustomRotations
+          path: "**/*.dll"

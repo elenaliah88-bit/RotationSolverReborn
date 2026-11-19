@@ -1,7 +1,6 @@
 namespace RotationSolver.Rotations.Magical.Pictomancer;
 
-[Rotation("Default PvP", CombatType.PvP, GameVersion = "7.58", RotationType = RotationType.Reborn)]
-[SourceCode(Path = "main/Rotations/Magical/Pictomancer/PCT_Default.PVP.cs")]
+[Rotation("My Custom PCT PvP", CombatType.PvP, GameVersion = "7.58", RotationType = RotationType.Reborn)]
 
 public class PCT_DefaultPvP : PictomancerRotation
 {
@@ -18,7 +17,26 @@ public class PCT_DefaultPvP : PictomancerRotation
 	public float BurstThreshold { get; set; } = 0.55f;
 	#endregion
 
+	// イマジン・ポンのチャージが残っているか（＝まだ撃っていない状態か）を直接チェック！
+	private bool HasPomCharge =>
+		(FreeBurst || CurrentTarget?.GetHealthRatio() <= BurstThreshold) &&
+		PomMusePvP.Cooldown.CurrentCharges > 0;
+
 	#region oGCDs
+	// 最優先枠でイマジン・ポンを叩き込む
+	protected override bool EmergencyAbility(IAction nextGCD, out IAction? action)
+	{
+		if (FreeBurst || CurrentTarget?.GetHealthRatio() <= BurstThreshold)
+		{
+			if (PomMusePvP.CanUse(out action, usedUp: true))
+			{
+				return true;
+			}
+		}
+
+		return base.EmergencyAbility(nextGCD, out action);
+	}
+
 	protected override bool DefenseSingleAbility(IAction nextGCD, out IAction? action)
 	{
 		if (TemperaCoatPvP.CanUse(out action) && Player?.GetHealthRatio() <= TempuraThreshold)
@@ -31,6 +49,14 @@ public class PCT_DefaultPvP : PictomancerRotation
 
 	protected override bool AttackAbility(IAction nextGCD, out IAction? action)
 	{
+		if (FreeBurst || CurrentTarget?.GetHealthRatio() <= BurstThreshold)
+		{
+			if (PomMusePvP.CanUse(out action, usedUp: true))
+			{
+				return true;
+			}
+		}
+
 		if (RustPvP.CanUse(out action))
 		{
 			return true;
@@ -43,12 +69,6 @@ public class PCT_DefaultPvP : PictomancerRotation
 
 		if (FreeBurst || CurrentTarget?.GetHealthRatio() <= BurstThreshold)
 		{
-			// Use all Muses in sequence for maximum burst
-			if (PomMusePvP.CanUse(out action, usedUp: true))
-			{
-				return true;
-			}
-
 			if (WingedMusePvP.CanUse(out action, usedUp: true))
 			{
 				return true;
@@ -85,12 +105,17 @@ public class PCT_DefaultPvP : PictomancerRotation
 
 		return base.AttackAbility(nextGCD, out action);
 	}
-
 	#endregion
 
 	#region GCDs
 	protected override bool GeneralGCD(out IAction? action)
 	{
+		// 【絶対ロック】イマジン・ポンのチャージが1以上残っている間（!HasPomCharge になるまで）は、ブラックコメットを絶対に撃たせない！
+		if (InCombat && !HasPomCharge && CometInBlackPvP.CanUse(out action, usedUp: true))
+		{
+			return true;
+		}
+
 		if (CometPvP.CanUse(out action))
 		{
 			return true;
@@ -107,11 +132,6 @@ public class PCT_DefaultPvP : PictomancerRotation
 		}
 
 		if (RetributionOfTheMadeenPvP.CanUse(out action))
-		{
-			return true;
-		}
-
-		if (CometInBlackPvP.CanUse(out action, usedUp: true))
 		{
 			return true;
 		}
