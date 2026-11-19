@@ -17,17 +17,14 @@ public class PCT_DefaultPvP : PictomancerRotation
 	public float BurstThreshold { get; set; } = 0.55f;
 	#endregion
 
-	// 敵をターゲットしていて25m以内にいるかどうかの判定
-	private bool HasValidTarget => CurrentTarget != null && CurrentTarget.DistanceToPlayer() <= 25f;
-
-	// イマジン・ポンを今すぐ撃つべきか
+	// ターゲットがいて、イマジン・ポンが撃てる状態か（余計な距離計算を外してシンプルに判定）
 	private bool CanUsePomNow =>
-		HasValidTarget &&
-		(FreeBurst || CurrentTarget?.GetHealthRatio() <= BurstThreshold) &&
+		CurrentTarget != null &&
+		(FreeBurst || CurrentTarget.GetHealthRatio() <= BurstThreshold) &&
 		PomMusePvP.CanUse(out _, usedUp: true, skipAoeCheck: true);
 
 	#region oGCDs
-	// 0手目（魔法を撃つ前）に強制的にイマジン・ポンを発動させる
+	// 最優先枠でイマジン・ポンを叩き込む
 	protected override bool EmergencyAbility(IAction nextGCD, out IAction? action)
 	{
 		if (CanUsePomNow)
@@ -114,15 +111,15 @@ public class PCT_DefaultPvP : PictomancerRotation
 	#region GCDs
 	protected override bool GeneralGCD(out IAction? action)
 	{
-		// イマジン・ポンが撃てる状態（バフをつける前）なら、魔法を一切撃たずに待機してイマジン・ポンを先に出させる
-		if (CanUsePomNow)
+		// 【戦闘中の最優先ブレーキ】イマジン・ポンが残っているなら、あらゆる魔法を一瞬止めてイマジン・ポンを先に出させる
+		if (InCombat && CanUsePomNow)
 		{
 			action = null;
 			return false;
 		}
 
-		// イマジン・ポンが出た直後、チャージがある限りブラックコメットを2連発する！
-		if (CometInBlackPvP.CanUse(out action, usedUp: true, skipAoeCheck: true))
+		// 【ブラックコメット保護】イマジン・ポンが撃てる状態（CanUsePomNow == true）の間は、ブラックコメットを絶対に温存する！
+		if (!CanUsePomNow && CometInBlackPvP.CanUse(out action, usedUp: true, skipAoeCheck: true))
 		{
 			return true;
 		}
