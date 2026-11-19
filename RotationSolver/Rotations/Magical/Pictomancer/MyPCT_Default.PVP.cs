@@ -1,6 +1,6 @@
 namespace RotationSolver.Rotations.Magical.Pictomancer;
 
-[Rotation("Default PvP", CombatType.PvP, GameVersion = "7.58", RotationType = RotationType.Reborn)]
+[Rotation("My Custom PCT PvP", CombatType.PvP, GameVersion = "7.58", RotationType = RotationType.Reborn)]
 [SourceCode(Path = "main/Rotations/Magical/Pictomancer/PCT_Default.PVP.cs")]
 
 public class PCT_DefaultPvP : PictomancerRotation
@@ -31,6 +31,14 @@ public class PCT_DefaultPvP : PictomancerRotation
 
 	protected override bool AttackAbility(IAction nextGCD, out IAction? action)
 	{
+		if (FreeBurst || CurrentTarget?.GetHealthRatio() <= BurstThreshold)
+		{
+			if (PomMusePvP.CanUse(out action, usedUp: true))
+			{
+				return true;
+			}
+		}
+
 		if (RustPvP.CanUse(out action))
 		{
 			return true;
@@ -43,12 +51,6 @@ public class PCT_DefaultPvP : PictomancerRotation
 
 		if (FreeBurst || CurrentTarget?.GetHealthRatio() <= BurstThreshold)
 		{
-			// Use all Muses in sequence for maximum burst
-			if (PomMusePvP.CanUse(out action, usedUp: true))
-			{
-				return true;
-			}
-
 			if (WingedMusePvP.CanUse(out action, usedUp: true))
 			{
 				return true;
@@ -91,6 +93,11 @@ public class PCT_DefaultPvP : PictomancerRotation
 	#region GCDs
 	protected override bool GeneralGCD(out IAction? action)
 	{
+		if (CometInBlackPvP.CanUse(out action, usedUp: true))
+		{
+			return true;
+		}
+
 		if (CometPvP.CanUse(out action))
 		{
 			return true;
@@ -107,11 +114,6 @@ public class PCT_DefaultPvP : PictomancerRotation
 		}
 
 		if (RetributionOfTheMadeenPvP.CanUse(out action))
-		{
-			return true;
-		}
-
-		if (CometInBlackPvP.CanUse(out action, usedUp: true))
 		{
 			return true;
 		}
