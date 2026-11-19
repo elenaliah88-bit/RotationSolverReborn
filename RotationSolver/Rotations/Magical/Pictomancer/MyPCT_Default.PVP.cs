@@ -1,7 +1,6 @@
 namespace RotationSolver.Rotations.Magical.Pictomancer;
 
 [Rotation("My Custom PCT PvP", CombatType.PvP, GameVersion = "7.58", RotationType = RotationType.Reborn)]
-[SourceCode(Path = "main/Rotations/Magical/Pictomancer/PCT_Default.PVP.cs")]
 
 public class PCT_DefaultPvP : PictomancerRotation
 {
@@ -18,7 +17,27 @@ public class PCT_DefaultPvP : PictomancerRotation
 	public float BurstThreshold { get; set; } = 0.55f;
 	#endregion
 
+	// イマジン・ポンを今すぐ撃つべき状態かどうかの共通判定
+	private bool ShouldUsePomFirst =>
+		HasHostilesInRange &&
+		(FreeBurst || CurrentTarget?.GetHealthRatio() <= BurstThreshold) &&
+		PomMusePvP.CanUse(out _, usedUp: true);
+
 	#region oGCDs
+	// 最優先の緊急アビリティ枠を使って、0手目（GCD前）から強引にイマジン・ポンを撃つ
+	protected override bool EmergencyAbility(IAction nextGCD, out IAction? action)
+	{
+		if (ShouldUsePomFirst)
+		{
+			if (PomMusePvP.CanUse(out action, usedUp: true))
+			{
+				return true;
+			}
+		}
+
+		return base.EmergencyAbility(nextGCD, out action);
+	}
+
 	protected override bool DefenseSingleAbility(IAction nextGCD, out IAction? action)
 	{
 		if (TemperaCoatPvP.CanUse(out action) && Player?.GetHealthRatio() <= TempuraThreshold)
@@ -31,7 +50,8 @@ public class PCT_DefaultPvP : PictomancerRotation
 
 	protected override bool AttackAbility(IAction nextGCD, out IAction? action)
 	{
-		if (FreeBurst || CurrentTarget?.GetHealthRatio() <= BurstThreshold)
+		// 念のため通常アビリティ枠でも最優先にしておく
+		if (ShouldUsePomFirst)
 		{
 			if (PomMusePvP.CanUse(out action, usedUp: true))
 			{
@@ -87,12 +107,19 @@ public class PCT_DefaultPvP : PictomancerRotation
 
 		return base.AttackAbility(nextGCD, out action);
 	}
-
 	#endregion
 
 	#region GCDs
 	protected override bool GeneralGCD(out IAction? action)
 	{
+		// イマジン・ポンを撃つ直前は、他の魔法が先に出ないように一瞬ブレーキをかける
+		if (ShouldUsePomFirst)
+		{
+			action = null;
+			return false;
+		}
+
+		// イマジン・ポンを撃ち終わった直後、最優先でブラックコメットを叩き込む！
 		if (CometInBlackPvP.CanUse(out action, usedUp: true))
 		{
 			return true;
