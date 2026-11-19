@@ -17,19 +17,18 @@ public class PCT_DefaultPvP : PictomancerRotation
 	public float BurstThreshold { get; set; } = 0.55f;
 	#endregion
 
-	// イマジン・ポンが今撃てる状態か
-	private bool CanUsePomNow =>
-		CurrentTarget != null &&
-		(FreeBurst || CurrentTarget.GetHealthRatio() <= BurstThreshold) &&
-		PomMusePvP.CanUse(out _, usedUp: true, skipAoeCheck: true);
+	// イマジン・ポンのチャージが残っているか（＝まだ撃っていない状態か）を直接チェック！
+	private bool HasPomCharge =>
+		(FreeBurst || CurrentTarget?.GetHealthRatio() <= BurstThreshold) &&
+		PomMusePvP.Cooldown.CurrentCharges > 0;
 
 	#region oGCDs
 	// 最優先枠でイマジン・ポンを叩き込む
 	protected override bool EmergencyAbility(IAction nextGCD, out IAction? action)
 	{
-		if (CanUsePomNow)
+		if (FreeBurst || CurrentTarget?.GetHealthRatio() <= BurstThreshold)
 		{
-			if (PomMusePvP.CanUse(out action, usedUp: true, skipAoeCheck: true))
+			if (PomMusePvP.CanUse(out action, usedUp: true))
 			{
 				return true;
 			}
@@ -50,15 +49,15 @@ public class PCT_DefaultPvP : PictomancerRotation
 
 	protected override bool AttackAbility(IAction nextGCD, out IAction? action)
 	{
-		if (CanUsePomNow)
+		if (FreeBurst || CurrentTarget?.GetHealthRatio() <= BurstThreshold)
 		{
-			if (PomMusePvP.CanUse(out action, usedUp: true, skipAoeCheck: true))
+			if (PomMusePvP.CanUse(out action, usedUp: true))
 			{
 				return true;
 			}
 		}
 
-		if (RustPvP.CanUse(out action, skipAoeCheck: true))
+		if (RustPvP.CanUse(out action))
 		{
 			return true;
 		}
@@ -70,17 +69,17 @@ public class PCT_DefaultPvP : PictomancerRotation
 
 		if (FreeBurst || CurrentTarget?.GetHealthRatio() <= BurstThreshold)
 		{
-			if (WingedMusePvP.CanUse(out action, usedUp: true, skipAoeCheck: true))
+			if (WingedMusePvP.CanUse(out action, usedUp: true))
 			{
 				return true;
 			}
 
-			if (ClawedMusePvP.CanUse(out action, usedUp: true, skipAoeCheck: true))
+			if (ClawedMusePvP.CanUse(out action, usedUp: true))
 			{
 				return true;
 			}
 
-			if (FangedMusePvP.CanUse(out action, usedUp: true, skipAoeCheck: true))
+			if (FangedMusePvP.CanUse(out action, usedUp: true))
 			{
 				return true;
 			}
@@ -111,37 +110,28 @@ public class PCT_DefaultPvP : PictomancerRotation
 	#region GCDs
 	protected override bool GeneralGCD(out IAction? action)
 	{
-		// 【1. 戦闘中のブレーキ】戦闘中で、イマジン・ポンが撃てる状態なら、魔法を止めてイマジン・ポンを先に出させる
-		if (InCombat && CanUsePomNow)
-		{
-			action = null;
-			return false;
-		}
-
-		// 【2. ブラックコメット完全保護】
-		// 「すでに戦闘中（InCombat）」かつ「イマジン・ポンがもう撃てない（＝撃ち終わった後）」のときだけ、ブラックコメット2連発を解禁！
-		// ※非戦闘時（!InCombat）の1発目にブラックコメットが暴発するのを100%防ぎます
-		if (InCombat && !CanUsePomNow && CometInBlackPvP.CanUse(out action, usedUp: true, skipAoeCheck: true))
+		// 【絶対ロック】イマジン・ポンのチャージが1以上残っている間（!HasPomCharge になるまで）は、ブラックコメットを絶対に撃たせない！
+		if (InCombat && !HasPomCharge && CometInBlackPvP.CanUse(out action, usedUp: true))
 		{
 			return true;
 		}
 
-		if (CometPvP.CanUse(out action, skipAoeCheck: true))
+		if (CometPvP.CanUse(out action))
 		{
 			return true;
 		}
 
-		if (StarPrismPvP.CanUse(out action, skipAoeCheck: true))
+		if (StarPrismPvP.CanUse(out action))
 		{
 			return true;
 		}
 
-		if (MogOfTheAgesPvP.CanUse(out action, skipAoeCheck: true))
+		if (MogOfTheAgesPvP.CanUse(out action))
 		{
 			return true;
 		}
 
-		if (RetributionOfTheMadeenPvP.CanUse(out action, skipAoeCheck: true))
+		if (RetributionOfTheMadeenPvP.CanUse(out action))
 		{
 			return true;
 		}
